@@ -1,13 +1,11 @@
 package azure.line.bot.sleepsurvey;
 
-import azure.line.bot.sleepsurvey.controller.EventController;
 import azure.line.bot.sleepsurvey.user.User;
 import com.linecorp.bot.model.event.MessageEvent;
 import com.linecorp.bot.model.event.message.TextMessageContent;
 import com.linecorp.bot.model.message.TextMessage;
 import com.linecorp.bot.spring.boot.annotation.EventMapping;
 import com.linecorp.bot.spring.boot.annotation.LineMessageHandler;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,12 +19,12 @@ import java.util.Map;
 public class SleepSurveyApplication {
 
     private static Map<String, User> registeredUser = new HashMap<>();
+    private static User u = new User();
 
-    @Autowired
-    private EventController eventController;
 
     public static void main(String[] args) {
         SpringApplication.run(SleepSurveyApplication.class, args);
+
     }
 
     @EventMapping
@@ -35,28 +33,28 @@ public class SleepSurveyApplication {
         var userId = event.getSource().getUserId();
         var text = event.getMessage().getText();
 
-        if (isStartCommand(text)) {
+        if (text.equals("是")) {
+            return new TextMessage("開始psqi睡眠品質衡量測驗");
+        }
 
-            // means the user just starts the questionnaire
-            if (registeredUser.containsKey(userId)) {
-                return new TextMessage("You've already started.");
+        int count = 0;
+
+        while (count < 9) {
+            if (count < 9) {
+                return new TextMessage(u.ask(count));
             }
-
-            User newUser = new User(userId);
-            registeredUser.put(userId, newUser);
+            int ans;
+            try {
+                ans = Integer.parseInt(text);
+            } catch (NumberFormatException exception) {
+                ans = -1;
+            }
+            if (ans != -1) {
+                u.addAnswer(count, ans);
+            }
         }
-
-        if (!registeredUser.containsKey(userId)) {
-            return new TextMessage("Please user '/start' command");
-        }
-
-        // know the user has used the cmd and started the questionnaire
-        User user = registeredUser.get(userId);
-        return eventController.handleEvent(user, text);
+        return null;
     }
-
-    private boolean isStartCommand(String text) {
-        return text.toLowerCase().contains("/start");
-    }
-
 }
+
+
